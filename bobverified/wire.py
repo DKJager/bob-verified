@@ -23,7 +23,7 @@ _DEFAULT_PKG_ROOT = str(_PKG_DIR.parent)
 # load_plan
 # ---------------------------------------------------------------------------
 
-def load_plan(path: str) -> dict:
+def load_plan(path: str, max_steps: int | None = None) -> dict:
     """Read and validate a plan JSON file; raise ValueError on invalid content."""
     with open(path, encoding="utf-8") as fh:
         plan: dict = json.load(fh)
@@ -31,6 +31,11 @@ def load_plan(path: str) -> dict:
     steps = plan.get("steps")
     if not isinstance(steps, list) or len(steps) == 0:
         raise ValueError("'steps' must be a non-empty list")
+
+    if max_steps is not None and len(steps) > max_steps:
+        raise ValueError(
+            f"plan has {len(steps)} steps but max_steps={max_steps}"
+        )
 
     seen_ids: set[str] = set()
     for i, step in enumerate(steps):
@@ -215,6 +220,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--max-turns", type=int, default=40)
     ap.add_argument("--gate-after", type=int, default=0)
     ap.add_argument("--gate-max-spent", type=float, default=1000.0)
+    ap.add_argument("--max-steps", type=int, default=None)
     ap.add_argument("--retry", action="store_true")
     ap.add_argument("--env", action="append", default=[], metavar="KEY=VALUE")
 
@@ -230,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
         env_dict[k] = v
 
     try:
-        plan = load_plan(args.plan)
+        plan = load_plan(args.plan, args.max_steps)
     except (ValueError, OSError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
