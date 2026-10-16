@@ -1,0 +1,11 @@
+{
+  "name": "simple_api",
+  "url": "https://github.com/mmautner/simple_api",
+  "commit": "17067fe3113a746e0a5044af88f5777d6e50c999",
+  "license": "MIT",
+  "test_command": "\"$TARGET_VENV/bin/python\" -c 'import app'",
+  "start_command": "\"$TARGET_VENV/bin/python\" models.py && exec \"$TARGET_VENV/bin/flask\" --app app run --port 5077",
+  "urls": ["http://127.0.0.1:5077/todos"],
+  "start_wait_s": 20,
+  "env": {}
+}

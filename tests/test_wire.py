@@ -124,3 +124,11 @@ def test_cli_env_flags(tmp_path):
                           "--workdir", str(tmp_path / "work"), "--evidence", str(tmp_path / "ev2"),
                           "--out", str(tmp_path / "t2.json"), "--env", "NOEQUALS"], capture_output=True, text=True)
     assert bad.returncode == 2
+
+
+def test_load_plan_max_steps(tmp_path):
+    p = write(tmp_path / "plan.json", PLAN)
+    assert len(wire.load_plan(p)["steps"]) == 2
+    assert len(wire.load_plan(p, max_steps=2)["steps"]) == 2
+    with pytest.raises(ValueError):
+        wire.load_plan(p, max_steps=1)
