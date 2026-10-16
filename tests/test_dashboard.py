@@ -183,3 +183,82 @@ def test_server_rejects_other_methods(server):
     with pytest.raises(urllib.error.HTTPError) as e:
         urllib.request.urlopen(req)
     assert e.value.code == 405
+
+
+# ---- re-verify as a stopped-on-timeout subprocess ----
+
+import json as _json
+import os
+import sys
+import time
+
+
+def pid_alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def test_run_reverify_subprocess_returns_the_saved_record(tmp_path):
+    run_dir = make_run(tmp_path / "run")
+    script = (
+        "import json,sys,pathlib\n"
+        "d=pathlib.Path(sys.argv[1])/'reverify'; d.mkdir(exist_ok=True)\n"
+        "(d/'99999999T000000000000Z.json').write_text(json.dumps({'utc':'2026-10-16T20:00:00Z','all_ok':True,'results':[],'log':'2026-10-16T20:00:00Z fake run'}))\n"
+    )
+    res = dashboard.run_reverify_subprocess(str(run_dir), timeout_s=20,
+                                            command=[sys.executable, "-c", script, str(run_dir)])
+    assert res["all_ok"] is True and "fake run" in res["log"]
+
+
+def test_run_reverify_subprocess_kills_the_whole_process_tree_on_timeout(tmp_path):
+    run_dir = make_run(tmp_path / "run")
+    pidfile = tmp_path / "grandchild.pid"
+    script = (
+        "import subprocess,sys,time\n"
+        f"p=subprocess.Popen([sys.executable,'-c','import time;time.sleep(300)'],start_new_session=True)\n"
+        f"open({str(pidfile)!r},'w').write(str(p.pid))\n"
+        "time.sleep(300)\n"
+    )
+    t0 = time.time()
+    res = dashboard.run_reverify_subprocess(str(run_dir), timeout_s=2, command=[sys.executable, "-c", script])
+    assert time.time() - t0 < 15
+    assert res["all_ok"] is False
+    assert "exceeded" in res["log"] and "2" in res["log"]
+    gc = int(pidfile.read_text())
+    for _ in range(30):
+        if not pid_alive(gc):
+            break
+        time.sleep(0.1)
+    assert not pid_alive(gc), "grandchild survived the timeout"
+
+
+def test_run_reverify_subprocess_reports_a_crash(tmp_path):
+    run_dir = make_run(tmp_path / "run")
+    res = dashboard.run_reverify_subprocess(str(run_dir), timeout_s=20,
+                                            command=[sys.executable, "-c", "import sys;print('boom detail');sys.exit(3)"])
+    assert res["all_ok"] is False
+    assert "boom detail" in res["log"]
+
+
+def test_server_default_reverify_uses_the_timeout(tmp_path, monkeypatch):
+    run_dir = make_run(tmp_path / "run")
+    seen = {}
+
+    def fake(run, timeout_s=None, **kw):
+        seen["t"] = timeout_s
+        return {"utc": "2026-10-16T13:00:00Z", "all_ok": True, "results": [], "log": "2026-10-16T13:00:00Z DEFAULT-PATH"}
+
+    monkeypatch.setattr(dashboard, "run_reverify_subprocess", fake)
+    srv = dashboard.make_server(str(run_dir), "127.0.0.1", 0, reverify_timeout_s=77)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        base = f"http://127.0.0.1:{srv.server_address[1]}"
+        with urllib.request.urlopen(urllib.request.Request(base + "/reverify", data=b"", method="POST")) as r:
+            assert "DEFAULT-PATH" in r.read().decode()
+        assert seen["t"] == 77
+    finally:
+        srv.shutdown()
+        srv.server_close()
