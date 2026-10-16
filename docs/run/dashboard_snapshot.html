@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Modernize Flask/SQLAlchemy Todo API to Python 3.12</title>
+<style>
+:root { --bg:#fff; --fg:#111; --tbg:#f5f5f5; --border:#ccc; }
+@media (prefers-color-scheme:dark) {
+  :root { --bg:#1a1a1a; --fg:#eee; --tbg:#2a2a2a; --border:#555; }
+}
+* { box-sizing:border-box; }
+body { font-family:sans-serif; margin:1rem auto; max-width:960px;
+       padding:0 1rem; background:var(--bg); color:var(--fg); }
+h1 { word-break:break-word; }
+table { border-collapse:collapse; width:100%; overflow-x:auto; display:block; }
+th,td { border:1px solid var(--border); padding:.35rem .5rem; text-align:left; vertical-align:top; }
+th { background:var(--tbg); }
+.v-accept  { color:#1a7a1a; font-weight:bold; }
+.v-reject  { color:#b00020; font-weight:bold; }
+.v-weak    { color:#7a5000; font-weight:bold; }
+@media (prefers-color-scheme:dark) {
+  .v-accept { color:#5fd85f; }
+  .v-reject { color:#ff6b6b; }
+  .v-weak   { color:#ffb347; }
+}
+.done { color:#1a7a1a; } .fail { color:#b00020; } .not_run { color:#666; }
+@media (prefers-color-scheme:dark) {
+  .done { color:#5fd85f; } .fail { color:#ff6b6b; } .not_run { color:#aaa; }
+}
+details { margin-top:.4rem; }
+summary { cursor:pointer; }
+pre { white-space:pre-wrap; word-break:break-word; background:var(--tbg);
+      padding:.5rem; border-radius:4px; }
+.section { margin-top:1.5rem; }
+form { margin-top:.5rem; }
+button { padding:.4rem .9rem; font-size:1rem; cursor:pointer; }
+</style>
+</head>
+<body>
+<h1>Modernize Flask/SQLAlchemy Todo API to Python 3.12</h1>
+<p><strong>Target:</strong> <a href="https://github.com/mmautner/simple_api">simple_api</a> &mdash; pinned commit: <code>17067fe3113a746e0a5044af88f5777d6e50c999</code> &mdash; license: MIT</p>
+<p>
+  Steps: <span class="done">3 done</span> /
+  <span class="fail">0 failed</span> /
+  <span class="not_run">0 not run</span> &mdash;
+  total cost: $2.05 &mdash;
+  reconciliation: <span class="v-accept">MATCH</span> (ledger 2.247946, Bob 2.247946)
+</p>
+<table>
+<thead><tr>
+  <th>ID</th><th>Title</th><th>Status</th><th>Gate verdict</th>
+  <th>negative control</th><th>Cost</th><th>Attempts</th><th>Commit</th>
+</tr></thead>
+<tbody>
+<tr><td>step_01</td><td>Fix imports, update requirements, make app importable and runnable</td><td><span class="done">done</span></td><td><span class="v-accept">ACCEPT</span></td><td>broken copy failed every check</td><td>0.3813</td><td>1</td><td>acd7b57</td></tr><tr><td colspan="8"><details><summary>Gate checks &amp; control</summary><strong>Checks:</strong><table><tr><td>step</td><td>✓</td><td>exit 0 * Serving Flask app &#x27;app&#x27;
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5077
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [16/Oct/2026 15:47:21] &quot;GET /todos HTTP/1.1&quot; 200 -
+</td></tr><tr><td>tests</td><td>✓</td><td>exit 0</td></tr><tr><td>start</td><td>✓</td><td>exit 0</td></tr><tr><td>url:http://127.0.0.1:5077/todos</td><td>✓</td><td>exit 0</td></tr></table><strong>Control checks:</strong><table><tr><td>step</td><td>✗</td><td>exit 1Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+  File &quot;/tmp/tmp6tuz1o2z/broken/app.py&quot;, line 1, in &lt;module&gt;
+    raise RuntimeError(&#x27;deliberate break&#x27;)
+RuntimeError: deliberate break
+</td></tr><tr><td>tests</td><td>✗</td><td>exit 1Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+  File &quot;/tmp/tmp6tuz1o2z/broken/app.py&quot;, line 1, in &lt;module&gt;
+    raise RuntimeError(&#x27;deliberate break&#x27;)
+RuntimeError: deliberate break
+</td></tr><tr><td>start</td><td>✗</td><td>exit 1</td></tr><tr><td>url:http://127.0.0.1:5077/todos</td><td>✗</td><td>timeout after 20s</td></tr></table></details></td></tr>
+<tr><td>step_02</td><td>Fix SQLAlchemy 2.x session setup and the missing 404 guard in PUT</td><td><span class="done">done</span></td><td><span class="v-accept">ACCEPT</span></td><td>broken copy failed every check</td><td>1.3830</td><td>1</td><td>2304283</td></tr><tr><td colspan="8"><details><summary>Gate checks &amp; control</summary><strong>Checks:</strong><table><tr><td>step</td><td>✓</td><td>exit 0 * Serving Flask app &#x27;app&#x27;
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5077
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [16/Oct/2026 15:51:00] &quot;[35m[1mPOST /todos HTTP/1.1[0m&quot; 201 -
+127.0.0.1 - - [16/Oct/2026 15:51:00] &quot;GET /todos/1 HTTP/1.1&quot; 200 -
+127.0.0.1 - - [16/Oct/2026 15:51:00] &quot;[35m[1mPUT /todos/1 HTTP/1.1[0m&quot; 201 -
+127.0.0.1 - - [16/Oct/2026 15:51:00] &quot;[33mGET /todos/99999 HTTP/1.1[0m&quot; 404 -
+127.0.0.1 - - [16/Oct/2026 15:51:00] &quot;[35m[1mDELETE /todos/1 HTTP/1.1[0m&quot; 204 -
+</td></tr><tr><td>tests</td><td>✓</td><td>exit 0</td></tr><tr><td>start</td><td>✓</td><td>exit 0</td></tr><tr><td>url:http://127.0.0.1:5077/todos</td><td>✓</td><td>exit 0</td></tr></table><strong>Control checks:</strong><table><tr><td>step</td><td>✗</td><td>exit 1Traceback (most recent call last):
+  File &quot;/tmp/tmp502imz93/broken/models.py&quot;, line 1, in &lt;module&gt;
+    raise RuntimeError(&#x27;deliberate break&#x27;)
+RuntimeError: deliberate break
+</td></tr><tr><td>tests</td><td>✗</td><td>exit 1Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+  File &quot;/tmp/tmp502imz93/broken/app.py&quot;, line 1, in &lt;module&gt;
+    raise RuntimeError(&#x27;deliberate break&#x27;)
+RuntimeError: deliberate break
+</td></tr><tr><td>start</td><td>✗</td><td>exit 1</td></tr><tr><td>url:http://127.0.0.1:5077/todos</td><td>✗</td><td>timeout after 20s</td></tr></table></details></td></tr>
+<tr><td>step_03</td><td>Add pytest test suite covering CRUD and not-found cases</td><td><span class="done">done</span></td><td><span class="v-accept">ACCEPT</span></td><td>broken copy failed every check</td><td>0.2900</td><td>1</td><td>0572574</td></tr><tr><td colspan="8"><details><summary>Gate checks &amp; control</summary><strong>Checks:</strong><table><tr><td>step</td><td>✓</td><td>exit 0============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- $TARGET_VENV/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /srv/bob-verified/work/simple_api
+collecting ... collected 8 items
+
+test_api.py::test_get_todos_returns_200 PASSED                           [ 12%]
+test_api.py::test_post_todo_creates_and_returns_201 PASSED               [ 25%]
+test_api.py::test_get_todo_returns_200_with_correct_task PASSED          [ 37%]
+test_api.py::test_put_todo_updates_task_and_returns_201 PASSED           [ 50%]
+test_api.py::test_delete_todo_returns_204 PASSED                         [ 62%]
+test_api.py::test_get_nonexistent_todo_returns_404 PASSED                [ 75%]
+test_api.py::test_put_nonexistent_todo_returns_404 PASSED                [ 87%]
+test_api.py::test_delete_nonexistent_todo_returns_404 PASSED             [100%]
+
+============================== 8 passed in 0.31s ===============================
+</td></tr><tr><td>tests</td><td>✓</td><td>exit 0</td></tr><tr><td>start</td><td>✓</td><td>exit 0</td></tr><tr><td>url:http://127.0.0.1:5077/todos</td><td>✓</td><td>exit 0</td></tr></table><strong>Control checks:</strong><table><tr><td>step</td><td>✗</td><td>exit 2============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.7.0 -- $TARGET_VENV/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /tmp/tmp17voy2zr/broken
+collecting ... collected 0 items / 1 error
+
+==================================== ERRORS ====================================
+_________________________ ERROR collecting test_api.py _________________________
+test_api.py:1: in &lt;module&gt;
+    raise RuntimeError(&#x27;deliberate break&#x27;)
+E   RuntimeError: deliberate break
+=========================== short test summary info ============================
+ERROR test_api.py - RuntimeError: deliberate break
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.07s ===============================
+</td></tr><tr><td>tests</td><td>✗</td><td>exit 1Traceback (most recent call last):
+  File &quot;&lt;string&gt;&quot;, line 1, in &lt;module&gt;
+  File &quot;/tmp/tmp17voy2zr/broken/app.py&quot;, line 1, in &lt;module&gt;
+    raise RuntimeError(&#x27;deliberate break&#x27;)
+RuntimeError: deliberate break
+</td></tr><tr><td>start</td><td>✗</td><td>exit 1</td></tr><tr><td>url:http://127.0.0.1:5077/todos</td><td>✗</td><td>timeout after 20s</td></tr></table></details></td></tr>
+</tbody>
+</table>
+<div class="section">
+<h2>Re-verify</h2>
+<p>This re-runs the checks against the target. It makes no AI call and costs nothing.</p>
+<form method="post" action="/reverify">
+  <button type="submit">Re-verify now</button>
+</form>
+<p>Last run: 2026-10-16T15:56:27Z — all_ok: yes</p><pre>2026-10-16T15:56:27Z start reverify of 4 checks
+2026-10-16T15:56:53Z step_01: ACCEPT
+2026-10-16T15:57:17Z step_02: ACCEPT
+2026-10-16T15:57:40Z step_03: ACCEPT
+2026-10-16T15:58:01Z final: ACCEPT
+2026-10-16T15:58:01Z done all_ok=True
+</pre>
+</div>
+</body>
+</html>

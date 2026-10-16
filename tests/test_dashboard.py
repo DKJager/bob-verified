@@ -32,6 +32,8 @@ def make_run(root, weak_step=False):
                     "session_costs": "0.5", "cumulative_spent": "0.5", "accept_pass": "PASS", "commit_sha": SHA1})
         w.writerow({"id": "step_02", "attempt": "2", "status": "fail", "bob_task_id": "bt2",
                     "session_costs": "1.25", "cumulative_spent": "1.75", "accept_pass": "FAIL", "commit_sha": ""})
+        w.writerow({"id": "plan", "attempt": "1", "status": "done", "bob_task_id": "bt0",
+                    "session_costs": "0.25", "cumulative_spent": "2.0", "accept_pass": "PASS", "commit_sha": "b" * 40})
     (root / "gate").mkdir()
     (root / "gate" / "step_01.json").write_text(json.dumps({
         "verdict": "CHECKS_TOO_WEAK" if weak_step else "ACCEPT", "utc": "2026-10-16T12:00:00Z", "step_command": "true",
@@ -78,7 +80,7 @@ def test_load_run_combines_plan_ledger_and_gate(tmp_path):
     assert steps["step_03"]["status"] == "not_run"
     assert steps["step_03"]["gate_verdict"] is None
     assert steps["step_03"]["cost"] == 0.0
-    assert run["total_cost"] == pytest.approx(1.75)
+    assert run["total_cost"] == pytest.approx(2.0)  # includes the planning task, which is not a plan step
     assert run["commits"] == [SHA1]
     assert run["reconciliation"]["status"] == "MATCH"
     assert run["last_reverify"]["utc"] == "2026-10-01T12:15:00Z"
@@ -94,12 +96,13 @@ def test_load_run_empty_directory_is_safe(tmp_path):
 def test_render_html_shows_the_evidence_and_escapes(tmp_path):
     html = dashboard.render_html(dashboard.load_run(str(make_run(tmp_path / "run"))))
     for needle in ["step_01", "step_02", "step_03", "ACCEPT", "REJECT_CHECKS_FAILED", "MATCH",
-                   "1.75", "MIT", "https://example.com/tinyapp", "c0ffee", "aaaaaaa",
+                   "2.00", "credits", "MIT", "https://example.com/tinyapp", "c0ffee", "aaaaaaa",
                    "2026-10-01T12:15:00Z", "step_01: ACCEPT", "negative control"]:
         assert needle in html, needle
     assert "<script>alert(1)</script>" not in html
     assert "&lt;script&gt;" in html
     assert "&lt;b&gt;" in html
+    assert "$2.00" not in html
     assert 'action="/reverify"' in html and 'method="post"' in html.lower()
 
 
@@ -135,7 +138,7 @@ def test_server_get_pages_are_read_only(server):
         assert "step_01" in r.read().decode()
     with urllib.request.urlopen(base + "/api/run") as r:
         data = json.loads(r.read())
-        assert data["total_cost"] == pytest.approx(1.75)
+        assert data["total_cost"] == pytest.approx(2.0)
     with pytest.raises(urllib.error.HTTPError) as e:
         urllib.request.urlopen(base + "/nope")
     assert e.value.code == 404

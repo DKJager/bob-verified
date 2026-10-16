@@ -1,0 +1,32 @@
+{
+  "verdict": "REJECT_CHECKS_FAILED",
+  "utc": "2026-10-16T15:55:09.350586+00:00",
+  "step_command": "$TARGET_VENV/bin/python -c 'import app'",
+  "checks": [
+    {
+      "name": "step",
+      "ok": false,
+      "detail": "exit 1Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/tmp/rej/app/app.py\", line 4, in <module>\n    from flask.ext.restful import Api\nModuleNotFoundError: No module named 'flask.ext'\n"
+    },
+    {
+      "name": "tests",
+      "ok": false,
+      "detail": "exit 1Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/tmp/rej/app/app.py\", line 4, in <module>\n    from flask.ext.restful import Api\nModuleNotFoundError: No module named 'flask.ext'\n"
+    },
+    {
+      "name": "start",
+      "ok": false,
+      "detail": "exit 2"
+    },
+    {
+      "name": "url:http://127.0.0.1:5077/todos",
+      "ok": false,
+      "detail": "timeout after 20s"
+    }
+  ],
+  "control": {
+    "ran": false,
+    "checks": [],
+    "weak": []
+  }
+}

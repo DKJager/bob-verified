@@ -1,0 +1,29 @@
+{
+  "title": "Modernize Flask/SQLAlchemy Todo API to Python 3.12",
+  "steps": [
+    {
+      "id": "step_01",
+      "title": "Fix imports, update requirements, make app importable and runnable",
+      "description": "Replace the removed `flask.ext.restful` import style in app.py and resources.py with `flask_restful`. Replace the deprecated `sqlalchemy.ext.declarative.declarative_base` in models.py with `sqlalchemy.orm.declarative_base`. Install current compatible versions of Flask, Flask-RESTful, and SQLAlchemy into the venv and record them in requirements.txt so that `import app` succeeds and the server starts.",
+      "verify": "$TARGET_VENV/bin/pip install -r requirements.txt -q && $TARGET_VENV/bin/python -c 'import app' && $TARGET_VENV/bin/python models.py && ($TARGET_VENV/bin/flask --app app run --port 5077 & SERVER_PID=$!; sleep 3; STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5077/todos); kill $SERVER_PID 2>/dev/null; wait $SERVER_PID 2>/dev/null; [ \"$STATUS\" = \"200\" ])"
+    },
+    {
+      "id": "step_02",
+      "title": "Fix SQLAlchemy 2.x session setup and the missing 404 guard in PUT",
+      "description": "Update db.py to use the SQLAlchemy 2.x-compatible session/engine setup (remove deprecated `bind=` kwarg from `sessionmaker`, pass the engine explicitly). Fix the bug in resources.py `TodoResource.put()` where a missing todo id causes an AttributeError instead of a 404 abort. Verify all CRUD paths work end-to-end against a live server.",
+      "verify": "$TARGET_VENV/bin/python models.py && ($TARGET_VENV/bin/flask --app app run --port 5077 & SERVER_PID=$!; sleep 3; POST=$(curl -s -X POST http://127.0.0.1:5077/todos -d 'task=buy+milk'); ID=$(echo \"$POST\" | $TARGET_VENV/bin/python -c 'import sys,json; print(json.load(sys.stdin)[\"id\"])'); GET_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5077/todos/$ID); PUT_STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X PUT http://127.0.0.1:5077/todos/$ID -d 'task=buy+bread'); MISS_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5077/todos/99999); DEL_STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE http://127.0.0.1:5077/todos/$ID); kill $SERVER_PID 2>/dev/null; wait $SERVER_PID 2>/dev/null; [ \"$GET_STATUS\" = \"200\" ] && [ \"$PUT_STATUS\" = \"201\" ] && [ \"$MISS_STATUS\" = \"404\" ] && [ \"$DEL_STATUS\" = \"204\" ])"
+    },
+    {
+      "id": "step_03",
+      "title": "Add pytest test suite covering CRUD and not-found cases",
+      "description": "Install pytest into the venv and create test_api.py at the repository root. Tests must configure the app to use a temporary in-memory SQLite database (not main.db) and cover: GET /todos returns 200, POST /todos creates a todo and returns 201, GET /todos/<id> returns 200 with correct task text, PUT /todos/<id> updates the task and returns 201, DELETE /todos/<id> returns 204, and GET/PUT/DELETE on a non-existent id all return 404.",
+      "verify": "$TARGET_VENV/bin/pip install pytest -q && $TARGET_VENV/bin/pytest test_api.py -v --tb=short"
+    }
+  ],
+  "target": {
+    "name": "simple_api",
+    "url": "https://github.com/mmautner/simple_api",
+    "commit": "17067fe3113a746e0a5044af88f5777d6e50c999",
+    "license": "MIT"
+  }
+}

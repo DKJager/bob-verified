@@ -1,0 +1,53 @@
+{
+  "verdict": "ACCEPT",
+  "utc": "2026-10-16T15:47:17.617668+00:00",
+  "step_command": "$TARGET_VENV/bin/pip install -r requirements.txt -q && $TARGET_VENV/bin/python -c 'import app' && $TARGET_VENV/bin/python models.py && ($TARGET_VENV/bin/flask --app app run --port 5077 & SERVER_PID=$!; sleep 3; STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5077/todos); kill $SERVER_PID 2>/dev/null; wait $SERVER_PID 2>/dev/null; [ \"$STATUS\" = \"200\" ])",
+  "checks": [
+    {
+      "name": "step",
+      "ok": true,
+      "detail": "exit 0 * Serving Flask app 'app'\n * Debug mode: off\n\u001b[31m\u001b[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.\u001b[0m\n * Running on http://127.0.0.1:5077\n\u001b[33mPress CTRL+C to quit\u001b[0m\n127.0.0.1 - - [16/Oct/2026 15:47:21] \"GET /todos HTTP/1.1\" 200 -\n"
+    },
+    {
+      "name": "tests",
+      "ok": true,
+      "detail": "exit 0"
+    },
+    {
+      "name": "start",
+      "ok": true,
+      "detail": "exit 0"
+    },
+    {
+      "name": "url:http://127.0.0.1:5077/todos",
+      "ok": true,
+      "detail": "exit 0"
+    }
+  ],
+  "control": {
+    "ran": true,
+    "checks": [
+      {
+        "name": "step",
+        "ok": false,
+        "detail": "exit 1Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/tmp/tmp6tuz1o2z/broken/app.py\", line 1, in <module>\n    raise RuntimeError('deliberate break')\nRuntimeError: deliberate break\n"
+      },
+      {
+        "name": "tests",
+        "ok": false,
+        "detail": "exit 1Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/tmp/tmp6tuz1o2z/broken/app.py\", line 1, in <module>\n    raise RuntimeError('deliberate break')\nRuntimeError: deliberate break\n"
+      },
+      {
+        "name": "start",
+        "ok": false,
+        "detail": "exit 1"
+      },
+      {
+        "name": "url:http://127.0.0.1:5077/todos",
+        "ok": false,
+        "detail": "timeout after 20s"
+      }
+    ],
+    "weak": []
+  }
+}

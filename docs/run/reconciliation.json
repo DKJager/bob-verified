@@ -1,0 +1,11 @@
+{
+  "ledger_total": 2.247946,
+  "db_total": 2.247946,
+  "delta": 0.0,
+  "status": "MATCH",
+  "retries": 0,
+  "failed_steps": 0,
+  "db_tasks_not_in_ledger": [],
+  "utc": "2026-10-16T15:55:09.290185+00:00",
+  "since_ms": 1792165479890
+}

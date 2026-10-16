@@ -1,0 +1,35 @@
+{
+  "utc": "2026-10-16T15:56:27Z",
+  "all_ok": true,
+  "results": [
+    {
+      "step_id": "step_01",
+      "verdict": "ACCEPT",
+      "failed": [],
+      "weak": [],
+      "utc": "2026-10-16T15:56:27.383850+00:00"
+    },
+    {
+      "step_id": "step_02",
+      "verdict": "ACCEPT",
+      "failed": [],
+      "weak": [],
+      "utc": "2026-10-16T15:56:53.035393+00:00"
+    },
+    {
+      "step_id": "step_03",
+      "verdict": "ACCEPT",
+      "failed": [],
+      "weak": [],
+      "utc": "2026-10-16T15:57:17.495256+00:00"
+    },
+    {
+      "step_id": "final",
+      "verdict": "ACCEPT",
+      "failed": [],
+      "weak": [],
+      "utc": "2026-10-16T15:57:40.368683+00:00"
+    }
+  ],
+  "log": "2026-10-16T15:56:27Z start reverify of 4 checks\n2026-10-16T15:56:53Z step_01: ACCEPT\n2026-10-16T15:57:17Z step_02: ACCEPT\n2026-10-16T15:57:40Z step_03: ACCEPT\n2026-10-16T15:58:01Z final: ACCEPT\n2026-10-16T15:58:01Z done all_ok=True\n"
+}
