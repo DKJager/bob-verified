@@ -56,7 +56,7 @@ The pipeline has five stages:
 
 `scripts/fetch_target.sh` reads `targets/simple_api.json` and checks out the pinned commit into a work directory outside this repository. The source code of `simple_api` is not stored here.
 
-The results of the recorded demo run are added under `docs/` after the run. No claim is made here about results that are not yet in the repository.
+The recorded demo run is in `docs/run/` (plan, ledger, gate results, reconciliation, re-verify log and a dashboard snapshot); its results are summarised below.
 
 ---
 
@@ -141,3 +141,25 @@ Exits 0 if all checks pass, 1 otherwise.
 |---|---|
 | `BOB_API_KEY` | API key passed to IBM Bob; never stored in any file |
 | `TARGET_VENV` | Path to the virtualenv for the target application; must be outside the target tree |
+
+---
+
+## Recorded demo run (16 October 2026)
+
+IBM Bob planned and implemented a three-step modernization of the demo target through this tool. Evidence: `docs/run/`.
+
+| Step | Gate verdict | Negative control | Credits |
+|---|---|---|---|
+| plan (Bob, plan mode, 3 steps) | plan validated | n/a | 0.194 |
+| step_01 make the app import and run on Python 3.12 | ACCEPT | broken copy failed 4 of 4 checks | 0.381 |
+| step_02 SQLAlchemy 2 session setup and a missing-id bug | ACCEPT | broken copy failed 4 of 4 checks | 1.383 |
+| step_03 add a pytest suite (9 tests) | ACCEPT | broken copy failed 4 of 4 checks | 0.290 |
+| Total | 3 of 3 steps accepted | | 2.248 |
+
+- Ledger total 2.2479 against Bob's own task store 2.2479: MATCH (`docs/run/reconciliation.json`).
+- A deliberately re-broken copy of the modernized target was rejected with `REJECT_CHECKS_FAILED` (step check, tests, server start and URL all failed): `docs/run/gate/demo_rejection.json`.
+- Re-verify (the dashboard button) re-ran all checks against the modernized target with no AI call in 94 seconds; every check was ACCEPT: `docs/run/reverify/` and `docs/run/reverify.log`.
+- `docs/run/dashboard_snapshot.html` is the dashboard page for this run.
+- Credits used in total by this entry (tool building plus this run): 5.82.
+
+Documents: `SUBMISSION.md`, `docs/PITCH.pdf`, `docs/SCRIPT.md`, `deploy/README.md`, `docs/BUILD_HISTORY.md`.

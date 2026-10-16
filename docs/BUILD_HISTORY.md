@@ -26,8 +26,9 @@ Each task ran through the runner: Bob wrote the implementation from a precise sp
 | b09_maxsteps | bobverified/wire.py (max_steps) | done (attempt 1) | 0.131 | c7e01579 |
 | b10_deploy | deploy/Dockerfile, deploy/bob-verified-dashboard.service, deploy/DEPLOY.md | done (attempt 1) | 0.361 | 033fbcf4 |
 | b11_docs | README.md, THIRD_PARTY.md | done (attempt 1) | 0.450 | 498b922d |
+| b12_dashfix | bobverified/dashboard.py (credits display, total including planning) | done (attempt 1) | 0.273 | d6071a28 |
 
-Total Bob credits for this phase, from Bob's local task store: 3.298.
+Total Bob credits for tool-building (tasks above), from Bob's local task store: 3.571.
 
 Task b06_fetch ran twice. The first attempt's tests passed, but an acceptance check written by the team mishandled a newly created directory and rejected it; the check was fixed (git status -uall) and the task was run again.
 
@@ -39,6 +40,15 @@ Task b06_fetch ran twice. The first attempt's tests passed, but an acceptance ch
 
 ## Edits by the team to files Bob wrote
 
+- bobverified/dashboard.py was changed by Bob in task b12 after the team saw the real dashboard (it showed dollars and left out the planning cost).
 - bobverified/wire.py: the default value of the author parameter of build_tasks was changed from a personal address to the neutral "Bob verified runner <runner@example.invalid>" (one line, 16 Oct 2026). Nothing else in Bob's modules was edited by hand.
+
+## The recorded demo run (16 Oct 2026)
+
+Run through the tool itself (evidence in docs/run/): IBM Bob in plan mode wrote the 3-step plan for the demo target; IBM Bob in agent mode implemented each step; the gate accepted each step after its negative control. The team wrote no code in the target. The plan task and the three step tasks are in docs/run/ledger.csv; the commits are in the work checkout and carry Bob-Task trailers.
+
+## Written by the team without Bob (submission package)
+
+README additions (results section), SUBMISSION.md, docs/PITCH.md, docs/PITCH.pdf (rendered from the same content), docs/SCRIPT.md, deploy/README.md. The owner checklist is kept out of the repository.
 
 Bob wrote no tests in phase 1; the team wrote no implementation module other than the ported runner.
