@@ -1,13 +1,20 @@
 [Unit]
-Description=Bob Verified Dashboard
+Description=Bob, verified: run dashboard
 After=network.target
 
 [Service]
-WorkingDirectory=/srv/bob-verified/app
-ExecStart=/usr/bin/python3.12 -m bobverified.dashboard --run /srv/bob-verified/run --host 127.0.0.1 --port 8080
-Restart=on-failure
 User=bobverified
+WorkingDirectory=/srv/bob-verified/app
 Environment=TARGET_VENV=/srv/bob-verified/target-venv
+ExecStart=/usr/bin/python3.12 -m bobverified.dashboard --run /srv/bob-verified/run --host 127.0.0.1 --port 8080 --reverify-timeout 120 --rate-limit-per-hour 6 --trust-proxy --exclusive-reverify
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/bob-verified
+MemoryMax=700M
+TasksMax=200
 
 [Install]
 WantedBy=multi-user.target
