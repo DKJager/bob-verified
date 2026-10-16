@@ -99,3 +99,28 @@ def test_cli_writes_tasks_and_run_files(tmp_path, target):
     assert r.returncode == 0, r.stderr
     assert json.loads(out.read_text())["budget_total"] == 9
     assert (tmp_path / "ev" / "plan.json").exists() and (tmp_path / "ev" / "target.json").exists()
+
+
+def test_write_run_files_merges_env(tmp_path, target):
+    ev = tmp_path / "ev"
+    wire.write_run_files(str(ev), PLAN, target, str(tmp_path / "work"), env={"TARGET_VENV": "/x/venv"})
+    tgt = json.loads((ev / "target.json").read_text())
+    assert tgt["env"] == {"TARGET_VENV": "/x/venv"}
+
+
+def test_cli_env_flags(tmp_path):
+    import subprocess
+    cfgp = write(tmp_path / "target.json", {"name": "t", "url": "u", "commit": "c", "license": "MIT",
+                                            "test_command": "true", "env": {"KEEP": "1", "A": "old"}})
+    plan = write(tmp_path / "plan.json", PLAN)
+    r = subprocess.run([sys.executable, "-m", "bobverified.wire", "--plan", plan, "--target", cfgp,
+                        "--workdir", str(tmp_path / "work"), "--evidence", str(tmp_path / "ev"),
+                        "--out", str(tmp_path / "tasks.json"), "--env", "TARGET_VENV=/x/y", "--env", "A=new"],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    tgt = json.loads((tmp_path / "ev" / "target.json").read_text())
+    assert tgt["env"] == {"KEEP": "1", "A": "new", "TARGET_VENV": "/x/y"}
+    bad = subprocess.run([sys.executable, "-m", "bobverified.wire", "--plan", plan, "--target", cfgp,
+                          "--workdir", str(tmp_path / "work"), "--evidence", str(tmp_path / "ev2"),
+                          "--out", str(tmp_path / "t2.json"), "--env", "NOEQUALS"], capture_output=True, text=True)
+    assert bad.returncode == 2

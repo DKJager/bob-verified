@@ -258,3 +258,46 @@ def test_cli_exit_codes_and_evidence(tmp_path):
     r = run_cli(good, weak, ev, "true", "weak_step")
     assert r.returncode == 3
     assert json.loads((ev / "gate" / "weak_step.json").read_text())["verdict"] == "CHECKS_TOO_WEAK"
+
+
+# ---- per-target environment variables ("env" in the config) ----
+
+def test_load_config_env_default_and_validation(tmp_path):
+    f = tmp_path / "t.json"
+    f.write_text(json.dumps({"test_command": "true"}))
+    assert gate.load_config(str(f))["env"] == {}
+    f.write_text(json.dumps({"test_command": "true", "env": {"A": "1"}}))
+    assert gate.load_config(str(f))["env"] == {"A": "1"}
+    f.write_text(json.dumps({"test_command": "true", "env": {"A": 1}}))
+    with pytest.raises(ValueError):
+        gate.load_config(str(f))
+    f.write_text(json.dumps({"test_command": "true", "env": ["A"]}))
+    with pytest.raises(ValueError):
+        gate.load_config(str(f))
+
+
+def test_run_checks_applies_config_env_to_commands_and_server(tmp_path):
+    app = make_app(tmp_path / "app")
+    port = free_port()
+    cfg = make_config(port, start_command=f"{sys.executable} server.py $APP_PORT",
+                      env={"APP_PORT": str(port), "MY_VAR": "hello"})
+    checks = gate.run_checks(str(app), cfg, step_command='test "$MY_VAR" = hello')
+    named = by_name(checks)
+    assert named["step"]["ok"] is True
+    assert named[f"url:http://127.0.0.1:{port}/"]["ok"] is True
+
+
+def test_config_env_cannot_reintroduce_the_api_key(tmp_path):
+    app = make_app(tmp_path / "app")
+    cfg = {"test_command": "true", "start_command": None, "urls": [], "start_wait_s": 2,
+           "break_command": None, "control_exempt": [], "env": {"BOB_API_KEY": "fake-key-should-not-pass"}}
+    checks = gate.run_checks(str(app), cfg, step_command='test -z "$BOB_API_KEY"')
+    assert by_name(checks)["step"]["ok"] is True
+
+
+def test_break_command_also_gets_config_env(tmp_path):
+    app = make_app(tmp_path / "app")
+    (app / "marker.txt").write_text("x")
+    dest = tmp_path / "copy"
+    gate.make_broken_copy(str(app), str(dest), 'rm "$WHICH"', env={"WHICH": "marker.txt"})
+    assert not (dest / "marker.txt").exists()
