@@ -10,10 +10,15 @@ import signal
 import subprocess
 import sys
 import threading
+import time
 from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
 from typing import Any
+
+
+def _now() -> float:
+    return time.time()
 
 
 # ---------------------------------------------------------------------------
@@ -474,10 +479,17 @@ def make_server(
     port: int = 8080,
     reverify_fn=None,
     reverify_timeout_s: float | None = None,
+    rate_limit_per_hour: int | None = None,
+    trust_proxy: bool = False,
+    exclusive_reverify: bool = False,
 ) -> http.server.ThreadingHTTPServer:
     """Create a ThreadingHTTPServer serving the dashboard for *run_dir*."""
 
     root = Path(run_dir)
+
+    # Per-client sliding-window rate limit state
+    _rate_lock = threading.Lock()
+    _client_times: dict[str, list[float]] = {}
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def log_message(self, fmt, *args):  # silence default logging
@@ -506,11 +518,36 @@ def make_server(
             else:
                 self._send(404, "text/plain", b"Not Found")
 
+        def _get_client_ip(self) -> str:
+            if trust_proxy:
+                header = self.headers.get("X-Real-IP")
+                if header:
+                    return header
+            return self.client_address[0]
+
         def do_POST(self):
             path = self.path.split("?", 1)[0]
             if path != "/reverify":
                 self._send(404, "text/plain", b"Not Found")
                 return
+
+            # Rate limit check
+            if rate_limit_per_hour is not None:
+                client = self._get_client_ip()
+                now_t = _now()
+                cutoff = now_t - 3600.0
+                with _rate_lock:
+                    times = _client_times.get(client, [])
+                    times = [t for t in times if t > cutoff]
+                    if len(times) >= rate_limit_per_hour:
+                        _client_times[client] = times
+                        body = (
+                            f"Re-verify is limited to {rate_limit_per_hour} runs per hour"
+                            f" per visitor. Try again later."
+                        ).encode()
+                        self._send(429, "text/plain", body)
+                        return
+                    # Don't record yet — do it after lock acquisition below
 
             fn = reverify_fn
             if fn is None:
@@ -524,7 +561,29 @@ def make_server(
             before = set(reverify_dir.glob("*.json"))
 
             record: dict[str, Any]
-            with _reverify_lock:
+
+            if exclusive_reverify:
+                acquired = _reverify_lock.acquire(blocking=False)
+                if not acquired:
+                    body = b"Re-verify is already running. Try again later."
+                    self._send(429, "text/plain", body)
+                    return
+            else:
+                _reverify_lock.acquire()
+                acquired = True
+
+            # Lock is held here — record the rate-limit timestamp now
+            if rate_limit_per_hour is not None:
+                client = self._get_client_ip()
+                now_t = _now()
+                cutoff = now_t - 3600.0
+                with _rate_lock:
+                    times = _client_times.get(client, [])
+                    times = [t for t in times if t > cutoff]
+                    times.append(now_t)
+                    _client_times[client] = times
+
+            try:
                 try:
                     result = fn(run_dir)
                     if isinstance(result, dict):
@@ -544,6 +603,8 @@ def make_server(
                 if not (after - before):
                     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
                     (reverify_dir / f"{stamp}.json").write_text(json.dumps(record))
+            finally:
+                _reverify_lock.release()
 
             self.send_response(303)
             self.send_header("Location", "/")
@@ -581,10 +642,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--reverify-timeout", type=float, default=None,
                         help="Timeout in seconds for the re-verify subprocess")
+    parser.add_argument("--rate-limit-per-hour", type=int, default=None,
+                        help="Max re-verify requests per client per hour")
+    parser.add_argument("--trust-proxy", action="store_true",
+                        help="Trust the X-Real-IP header for client identity")
+    parser.add_argument("--exclusive-reverify", action="store_true",
+                        help="Reject concurrent re-verify requests with 429")
     args = parser.parse_args(argv)
 
     srv = make_server(args.run, args.host, args.port,
-                      reverify_timeout_s=args.reverify_timeout)
+                      reverify_timeout_s=args.reverify_timeout,
+                      rate_limit_per_hour=args.rate_limit_per_hour,
+                      trust_proxy=args.trust_proxy,
+                      exclusive_reverify=args.exclusive_reverify)
     host, port = srv.server_address
     print(f"serving {args.run} on http://{host}:{port}")
     try:
