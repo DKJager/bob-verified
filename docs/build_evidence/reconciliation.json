@@ -1,0 +1,19 @@
+{
+  "ledger_total": 3.2979139999999996,
+  "db_total": 3.297914,
+  "delta": 4.440892098500626e-16,
+  "status": "MATCH",
+  "retries": 1,
+  "failed_steps": 1,
+  "db_tasks_not_in_ledger": [
+    {
+      "id": "c09e59c2f0e8deca48533e1ff2874d33",
+      "status": "active",
+      "cost": 0.157272,
+      "created_at": 1792164506153,
+      "first_line": "Create ONE new file: scripts/fetch_target.sh (bash) and make it executable (chmo"
+    }
+  ],
+  "utc": "2026-10-16T15:40:14.675785+00:00",
+  "since_ms": 1792127228241
+}
