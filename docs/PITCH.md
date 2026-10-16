@@ -1,5 +1,11 @@
 # Bob, verified: pitch
 
+## What we accomplished
+
+We took a nine-year-old Flask to-do service that no longer ran, handed it to IBM Bob, and got it running on Python 3.12 in three steps for 2.25 credits, with every step proven rather than claimed. We did it by building a verification layer around Bob: after each step an independent gate runs the step's own check and the app's smoke checks, then runs the same checks on a deliberately broken copy; if the checks still pass on broken code they are too weak and the step is refused. All three steps were accepted, every broken copy failed every check, the cost ledger matched Bob's own task store to four decimals, and a zero-cost re-verify from the live dashboard re-ran everything and accepted it again. Bob wrote every implementation module of the tool from tests the team wrote first.
+
+Demo video: https://youtu.be/qAyUG-xH8RY. Live dashboard: https://18-216-235-168.sslip.io/. Code: https://github.com/DKJager/bob-verified
+
 ## 1. Team and introduction
 
 Alan Finney, founder of 3Dogs Nexus, a startup that sells consulting on problems advanced AI can solve. 3Dogs Nexus builds for clients and also advises clients who run their own questions through its tools. Team of one, working with IBM Bob as its engineering partner: Bob wrote every implementation module of this tool except the ported task runner, and carried out the modernization shown below.
