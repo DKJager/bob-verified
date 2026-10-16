@@ -1,5 +1,7 @@
 # Putting the dashboard on a live URL (AWS)
 
+Status: the demo is deployed at https://18-216-235-168.sslip.io/ using exactly the steps and files below (deploy/setup_box.sh automates steps 5 to 8). The host has no credentials of any kind: no instance profile, no cloud keys, one deploy key used only for the installation, and a service user without a login shell. Re-verify is limited to one run at a time, 6 runs per hour per visitor and a 120 second hard stop (flags --exclusive-reverify, --rate-limit-per-hour, --reverify-timeout of the dashboard).
+
 This gives the hackathon submission a live, working URL. Nothing here has been run for you; the steps are exact so they can be followed in about 20 minutes. DEPLOY.md in this folder has the longer reference.
 
 ## What the page needs

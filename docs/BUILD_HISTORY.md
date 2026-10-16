@@ -14,21 +14,25 @@ Each task ran through the runner: Bob wrote the implementation from a precise sp
 
 | Task | What Bob wrote | Result | Credits (Bob's own figure) | Commit |
 |---|---|---|---|---|
-| b01_gate | bobverified/gate.py | done (attempt 1) | 0.319 | ed457e43 |
-| b02_ledger | bobverified/ledger.py | done (attempt 1) | 0.176 | 35e21157 |
-| b03_reverify | bobverified/reverify.py | done (attempt 1) | 0.331 | 48b71144 |
-| b04_dashboard | bobverified/dashboard.py | done (attempt 1) | 0.470 | 1541f121 |
-| b05_wire | bobverified/wire.py (first version) | done (attempt 1) | 0.249 | 101f5a27 |
+| b01_gate | bobverified/gate.py | done (attempt 1) | 0.319 | 078c8127 |
+| b02_ledger | bobverified/ledger.py | done (attempt 1) | 0.176 | 7c7c7c75 |
+| b03_reverify | bobverified/reverify.py | done (attempt 1) | 0.331 | 402a479a |
+| b04_dashboard | bobverified/dashboard.py | done (attempt 1) | 0.470 | bd370b28 |
+| b05_wire | bobverified/wire.py (first version) | done (attempt 1) | 0.249 | 7b4ac0a3 |
 | b06_fetch | scripts/fetch_target.sh | fail (attempt 2) | 0.354 | none |
-| b06_fetch | scripts/fetch_target.sh | done (attempt 1) | 0.156 | 9a19e60c |
-| b07_gate_env | bobverified/gate.py (per-target env support) | done (attempt 1) | 0.166 | c001be50 |
-| b08_wire_env | bobverified/wire.py (env flags) | done (attempt 1) | 0.135 | 389e81bd |
-| b09_maxsteps | bobverified/wire.py (max_steps) | done (attempt 1) | 0.131 | c7e01579 |
-| b10_deploy | deploy/Dockerfile, deploy/bob-verified-dashboard.service, deploy/DEPLOY.md | done (attempt 1) | 0.361 | 033fbcf4 |
-| b11_docs | README.md, THIRD_PARTY.md | done (attempt 1) | 0.450 | 498b922d |
-| b12_dashfix | bobverified/dashboard.py (credits display, total including planning) | done (attempt 1) | 0.273 | d6071a28 |
+| b06_fetch | scripts/fetch_target.sh | done (attempt 1) | 0.156 | d95e36fa |
+| b07_gate_env | bobverified/gate.py (per-target env support) | done (attempt 1) | 0.166 | 50262638 |
+| b08_wire_env | bobverified/wire.py (env flags) | done (attempt 1) | 0.135 | 4eb3a9f7 |
+| b09_maxsteps | bobverified/wire.py (max_steps) | done (attempt 1) | 0.131 | 9fa5cd28 |
+| b10_deploy | deploy/Dockerfile, deploy/bob-verified-dashboard.service, deploy/DEPLOY.md | done (attempt 1) | 0.361 | 7564a8c2 |
+| b11_docs | README.md, THIRD_PARTY.md | done (attempt 1) | 0.450 | 5b01eb61 |
+| b12_dashfix | bobverified/dashboard.py (credits display, total including planning) | done (attempt 1) | 0.273 | a93b87ff |
+| b13_dashtimeout | bobverified/dashboard.py (re-verify as a subprocess stopped with its whole process tree at a time limit) | done (attempt 1) | 0.309 | a0ae1d6c |
+| b14_dashlimits | bobverified/dashboard.py (per-visitor rate limit, one re-verify at a time) | done (attempt 1) | 0.339 | b86733a1 |
 
-Total Bob credits for tool-building (tasks above), from Bob's local task store: 3.571.
+Total Bob credits for tool-building (tasks above), from Bob's local task store: 4.219.
+
+The live demo host was deployed on 16 Oct 2026 with these files; the history of this repository was rewritten once before publication to remove fixture key strings and a personal default address (commit ids in this file are the ids after the rewrite).
 
 Task b06_fetch ran twice. The first attempt's tests passed, but an acceptance check written by the team mishandled a newly created directory and rejected it; the check was fixed (git status -uall) and the task was run again.
 
@@ -49,6 +53,6 @@ Run through the tool itself (evidence in docs/run/): IBM Bob in plan mode wrote 
 
 ## Written by the team without Bob (submission package)
 
-README additions (results section), SUBMISSION.md, docs/PITCH.md, docs/PITCH.pdf (rendered from the same content), docs/SCRIPT.md, deploy/README.md. The owner checklist is kept out of the repository.
+deploy/setup_box.sh, deploy/nginx-bob-verified.conf and the hardened systemd unit, SECURITY_SCAN.md, LICENSE, README additions (results section, live demo URL), SUBMISSION.md, docs/PITCH.md, docs/PITCH.pdf (rendered from the same content), docs/SCRIPT.md, deploy/README.md. The owner checklist is kept out of the repository.
 
 Bob wrote no tests in phase 1; the team wrote no implementation module other than the ported runner.

@@ -1,6 +1,6 @@
 # Security scan
 
-Scan run by the build session on 2026-10-16T16:15:05Z (UTC), before publication. Scope: every tracked file in the working tree (48 files at the time of the scan, plus the licence and this file; the PDF is scanned as extracted text) and the complete git history (every commit on every branch, full patches with `git log -p --all`, 23 commits). Matching is case-insensitive. The repository history was rewritten once before this scan to remove hits found by an earlier pass (test-fixture key strings and a personal default address in one source file).
+Scan run by the build session on 2026-10-16T16:33:18Z (UTC), before publication. Scope: every tracked file in the working tree (48 files at the time of the scan, plus the licence and this file; the PDF is scanned as extracted text) and the complete git history (every commit on every branch, full patches with `git log -p --all`, 23 commits). Matching is case-insensitive. The repository history was rewritten once before this scan to remove hits found by an earlier pass (test-fixture key strings and a personal default address in one source file).
 
 ## Patterns (regular expressions)
 
@@ -16,9 +16,9 @@ Scan run by the build session on 2026-10-16T16:15:05Z (UTC), before publication.
 
 0 unexplained hits. Counts exclude this file. Raw matches were all reviewed and fall into these documented groups:
 
-- IPv4 addresses (106 lines): only 127.0.0.1 and 0.0.0.0 (local test servers and the container bind address). Any other address would have been reported.
-- The identifier api_ke[y] (68 lines): variable and test names such as "does not leak api key". Zero lines contain a key value; the key-with-value pattern matches only clearly labelled fake test fixtures (6 lines, values beginning "fake-").
+- IPv4 addresses (131 lines): only 127.0.0.1 and 0.0.0.0 (local test servers and the container bind address) and addresses in the reserved documentation range 203.0.113.0/24 (made-up client addresses in the rate-limit tests). Any other address would have been reported.
+- The identifier api_ke[y] (69 lines): variable and test names such as "does not leak api key". Zero lines contain a key value; the key-with-value pattern matches only clearly labelled fake test fixtures (6 lines, values beginning "fake-").
 - The company name, which is also the team name in the pitch, script and submission text (6 lines), intentionally public.
-- The owner's git author identity in commit metadata (46 lines), needed so the commits are attributed to the owner.
+- The owner's git author identity in commit metadata (58 lines), needed so the commits are attributed to the owner.
 
 No credentials, account numbers, internal hostnames, internal paths or other AI model names were found in any file or any commit. No credentials are contained in the repository or in its history.

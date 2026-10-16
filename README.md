@@ -162,4 +162,6 @@ IBM Bob planned and implemented a three-step modernization of the demo target th
 - `docs/run/dashboard_snapshot.html` is the dashboard page for this run.
 - Credits used in total by this entry (tool building plus this run): 5.82.
 
+Live demo: https://18-216-235-168.sslip.io/ (the page for this run; the Re-verify button really re-runs the checks against the modernized target on that server; limited to one run at a time, 6 per hour per visitor and a 120 second hard stop).
+
 Documents: `SUBMISSION.md`, `docs/PITCH.pdf`, `docs/SCRIPT.md`, `deploy/README.md`, `docs/BUILD_HISTORY.md`.
