@@ -262,3 +262,106 @@ def test_server_default_reverify_uses_the_timeout(tmp_path, monkeypatch):
     finally:
         srv.shutdown()
         srv.server_close()
+
+
+# ---- rate limit and one-at-a-time for re-verify ----
+
+def post(base, headers=None):
+    req = urllib.request.Request(base + "/reverify", data=b"", method="POST", headers=headers or {})
+    return urllib.request.urlopen(req)
+
+
+def start(run_dir, **kw):
+    calls = []
+
+    def fake(path):
+        calls.append(path)
+        return {"utc": "2026-10-16T13:00:00Z", "all_ok": True, "results": [], "log": "2026-10-16T13:00:00Z FAKE-RV"}
+
+    srv = dashboard.make_server(str(run_dir), "127.0.0.1", 0, reverify_fn=kw.pop("fn", fake), **kw)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv, f"http://127.0.0.1:{srv.server_address[1]}", calls
+
+
+def test_rate_limit_per_hour_blocks_the_extra_request(tmp_path):
+    srv, base, calls = start(make_run(tmp_path / "run"), rate_limit_per_hour=2)
+    try:
+        post(base).read()
+        post(base).read()
+        with pytest.raises(urllib.error.HTTPError) as e:
+            post(base)
+        assert e.value.code == 429
+        assert "limited" in e.value.read().decode()
+        assert len(calls) == 2
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+def test_rate_limit_window_expires(tmp_path, monkeypatch):
+    clock = {"t": 1000.0}
+    monkeypatch.setattr(dashboard, "_now", lambda: clock["t"])
+    srv, base, calls = start(make_run(tmp_path / "run"), rate_limit_per_hour=1)
+    try:
+        post(base).read()
+        with pytest.raises(urllib.error.HTTPError):
+            post(base)
+        clock["t"] += 3601
+        post(base).read()
+        assert len(calls) == 2
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+def test_rate_limit_is_per_client_when_the_proxy_header_is_trusted(tmp_path):
+    srv, base, calls = start(make_run(tmp_path / "run"), rate_limit_per_hour=1, trust_proxy=True)
+    try:
+        post(base, {"X-Real-IP": "203.0.113.5"}).read()
+        with pytest.raises(urllib.error.HTTPError) as e:
+            post(base, {"X-Real-IP": "203.0.113.5"})
+        assert e.value.code == 429
+        post(base, {"X-Real-IP": "203.0.113.6"}).read()
+        assert len(calls) == 2
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+def test_proxy_header_is_ignored_unless_trusted(tmp_path):
+    srv, base, calls = start(make_run(tmp_path / "run"), rate_limit_per_hour=1)
+    try:
+        post(base, {"X-Real-IP": "203.0.113.5"}).read()
+        with pytest.raises(urllib.error.HTTPError) as e:
+            post(base, {"X-Real-IP": "203.0.113.6"})
+        assert e.value.code == 429
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+def test_exclusive_reverify_rejects_a_second_run_while_one_is_running(tmp_path):
+    gate_open = threading.Event()
+    entered = threading.Event()
+
+    def slow(path):
+        entered.set()
+        gate_open.wait(20)
+        return {"utc": "2026-10-16T13:00:00Z", "all_ok": True, "results": [], "log": "2026-10-16T13:00:00Z SLOW-DONE"}
+
+    srv, base, _ = start(make_run(tmp_path / "run"), fn=slow, exclusive_reverify=True)
+    result = {}
+    t = threading.Thread(target=lambda: result.setdefault("body", post(base).read().decode()))
+    t.start()
+    try:
+        assert entered.wait(10)
+        with pytest.raises(urllib.error.HTTPError) as e:
+            post(base)
+        assert e.value.code == 429
+        assert "already running" in e.value.read().decode()
+    finally:
+        gate_open.set()
+        t.join(20)
+        srv.shutdown()
+        srv.server_close()
+    assert "SLOW-DONE" in result["body"]
