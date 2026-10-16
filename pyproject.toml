@@ -1,0 +1,9 @@
+[project]
+name = "bob-verified"
+version = "0.1.0"
+description = "Verification and orchestration layer that lets a team trust a modernization done by IBM Bob."
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
