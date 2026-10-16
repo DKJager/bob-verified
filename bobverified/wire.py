@@ -163,6 +163,7 @@ def write_run_files(
     plan: dict,
     target_config_path: str,
     workdir: str,
+    env: dict | None = None,
 ) -> None:
     """Create evidence_dir and write plan.json and target.json into it."""
     os.makedirs(evidence_dir, exist_ok=True)
@@ -183,9 +184,13 @@ def write_run_files(
     with open(plan_path, "w", encoding="utf-8") as fh:
         json.dump(plan_out, fh, indent=2)
 
-    # target.json: full target config + workdir.
+    # target.json: full target config + workdir + merged env.
     target_out = dict(target_cfg)
     target_out["workdir"] = workdir
+    merged_env = dict(target_cfg.get("env") or {})
+    if env:
+        merged_env.update(env)
+    target_out["env"] = merged_env
     target_path = os.path.join(evidence_dir, "target.json")
     with open(target_path, "w", encoding="utf-8") as fh:
         json.dump(target_out, fh, indent=2)
@@ -211,8 +216,18 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--gate-after", type=int, default=0)
     ap.add_argument("--gate-max-spent", type=float, default=1000.0)
     ap.add_argument("--retry", action="store_true")
+    ap.add_argument("--env", action="append", default=[], metavar="KEY=VALUE")
 
     args = ap.parse_args(argv)
+
+    # Parse --env KEY=VALUE pairs.
+    env_dict: dict[str, str] = {}
+    for item in args.env:
+        if "=" not in item or item.split("=", 1)[0] == "":
+            print(f"--env requires KEY=VALUE (got {item!r})", file=sys.stderr)
+            return 2
+        k, v = item.split("=", 1)
+        env_dict[k] = v
 
     try:
         plan = load_plan(args.plan)
@@ -221,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        write_run_files(args.evidence, plan, args.target, args.workdir)
+        write_run_files(args.evidence, plan, args.target, args.workdir, env=env_dict or None)
     except (ValueError, OSError) as exc:
         print(str(exc), file=sys.stderr)
         return 2
