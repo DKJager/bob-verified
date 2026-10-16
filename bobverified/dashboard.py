@@ -63,8 +63,14 @@ def load_run(run_dir: str) -> dict:
             return json.loads(p.read_text())
         return None
 
+    # total_cost: sum session_costs for ALL ledger rows with status "done" or "fail"
+    total_cost = sum(
+        float(r.get("session_costs") or 0)
+        for r in ledger_rows
+        if r.get("status") in ("done", "fail")
+    )
+
     steps = []
-    total_cost = 0.0
     commits: list[str] = []
 
     for sid in step_ids:
@@ -95,8 +101,6 @@ def load_run(run_dir: str) -> dict:
             control_ran = False
             control_checks = []
             control_weak = []
-
-        total_cost += cost
 
         if status == "done" and commit_sha:
             commits.append(commit_sha)
@@ -321,13 +325,13 @@ def render_html(run: dict) -> str:
   Steps: <span class="done">{done} done</span> /
   <span class="fail">{fail} failed</span> /
   <span class="not_run">{not_run} not run</span> &mdash;
-  total cost: ${total_cost:.2f} &mdash;
+  total cost: {total_cost:.2f} credits &mdash;
   reconciliation: {recon_str}
 </p>
 <table>
 <thead><tr>
   <th>ID</th><th>Title</th><th>Status</th><th>Gate verdict</th>
-  <th>negative control</th><th>Cost</th><th>Attempts</th><th>Commit</th>
+  <th>negative control</th><th>credits</th><th>Attempts</th><th>Commit</th>
 </tr></thead>
 <tbody>
 {step_rows_html}
