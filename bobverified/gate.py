@@ -31,16 +31,22 @@ from typing import Optional
 _COPY_IGNORE = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", "node_modules"}
 
 
-def _clean_env() -> dict:
-    """Return the current environment without BOB_API_KEY."""
+def _build_env(config_env: Optional[dict] = None) -> dict:
+    """Build child environment: os.environ minus BOB_API_KEY, with config_env merged on top.
+
+    BOB_API_KEY is removed again after the merge so the config can never restore it.
+    """
     env = dict(os.environ)
+    env.pop("BOB_API_KEY", None)
+    if config_env:
+        env.update(config_env)
     env.pop("BOB_API_KEY", None)
     return env
 
 
-def _run(cmd: str, cwd: str, timeout_s: int) -> dict:
+def _run(cmd: str, cwd: str, timeout_s: int, config_env: Optional[dict] = None) -> dict:
     """Run *cmd* with shell=True in *cwd*; return a check dict (name filled by caller)."""
-    env = _clean_env()
+    env = _build_env(config_env)
     try:
         result = subprocess.run(
             cmd,
@@ -67,6 +73,7 @@ def load_config(path: str) -> dict:
 
     Required key: ``test_command`` (non-empty str).
     If ``urls`` is non-empty, ``start_command`` must be set.
+    Optional key: ``env`` – dict mapping str keys to str values.
     """
     with open(path, encoding="utf-8") as fh:
         raw: dict = json.load(fh)
@@ -75,6 +82,13 @@ def load_config(path: str) -> dict:
     if not test_command or not isinstance(test_command, str):
         raise ValueError("'test_command' is required and must be a non-empty string")
 
+    env = raw.get("env", {})
+    if not isinstance(env, dict):
+        raise ValueError("'env' must be a dict")
+    for k, v in env.items():
+        if not isinstance(k, str) or not isinstance(v, str):
+            raise ValueError("'env' keys and values must all be strings")
+
     cfg = {
         "test_command": test_command,
         "start_command": raw.get("start_command", None),
@@ -82,6 +96,7 @@ def load_config(path: str) -> dict:
         "start_wait_s": raw.get("start_wait_s", 10),
         "break_command": raw.get("break_command", None),
         "control_exempt": raw.get("control_exempt", []),
+        "env": env,
     }
 
     if cfg["urls"] and not cfg["start_command"]:
@@ -103,18 +118,20 @@ def run_checks(
     """Execute step, tests, optional server + url checks; return list of check dicts."""
     checks: list[dict] = []
 
+    config_env = config.get("env") or None
+
     # 1. Optional step check
     if step_command:
-        res = _run(step_command, workdir, timeout_s)
+        res = _run(step_command, workdir, timeout_s, config_env)
         checks.append({"name": "step", **res})
 
     # 2. Tests
-    res = _run(config["test_command"], workdir, timeout_s)
+    res = _run(config["test_command"], workdir, timeout_s, config_env)
     checks.append({"name": "tests", **res})
 
     # 3. Server + URL checks (only if start_command is set)
     if config.get("start_command"):
-        env = _clean_env()
+        env = _build_env(config_env)
         proc = subprocess.Popen(
             config["start_command"],
             shell=True,
@@ -191,12 +208,19 @@ def run_checks(
 # make_broken_copy
 # ---------------------------------------------------------------------------
 
-def make_broken_copy(workdir: str, dest: str, break_command: Optional[str]) -> None:
+def make_broken_copy(
+    workdir: str,
+    dest: str,
+    break_command: Optional[str],
+    env: Optional[dict] = None,
+) -> None:
     """Copy *workdir* to *dest*, then break it.
 
     Excludes: .git, .venv, venv, __pycache__, .pytest_cache, node_modules.
     If *break_command* is provided, run it in *dest*; otherwise replace every
     *.py file with ``raise RuntimeError('deliberate break')``.
+    *env* is an optional mapping merged on top of the clean environment (same
+    rules as the config ``env`` key – BOB_API_KEY is always stripped).
     """
     shutil.copytree(
         workdir,
@@ -205,7 +229,9 @@ def make_broken_copy(workdir: str, dest: str, break_command: Optional[str]) -> N
     )
 
     if break_command:
-        result = subprocess.run(break_command, shell=True, cwd=dest, env=_clean_env())
+        result = subprocess.run(
+            break_command, shell=True, cwd=dest, env=_build_env(env)
+        )
         if result.returncode != 0:
             raise RuntimeError(
                 f"break_command exited with code {result.returncode}"
@@ -247,7 +273,7 @@ def verify_step(
     tmp = tempfile.mkdtemp(dir=scratch_dir)
     try:
         broken = os.path.join(tmp, "broken")
-        make_broken_copy(workdir, broken, config.get("break_command"))
+        make_broken_copy(workdir, broken, config.get("break_command"), env=config.get("env"))
         control_checks = run_checks(broken, config, step_command)
 
         exempt = set(config.get("control_exempt", []))
