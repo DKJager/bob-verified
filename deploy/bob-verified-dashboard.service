@@ -1,0 +1,13 @@
+[Unit]
+Description=Bob Verified Dashboard
+After=network.target
+
+[Service]
+WorkingDirectory=/srv/bob-verified/app
+ExecStart=/usr/bin/python3.12 -m bobverified.dashboard --run /srv/bob-verified/run --host 127.0.0.1 --port 8080
+Restart=on-failure
+User=bobverified
+Environment=TARGET_VENV=/srv/bob-verified/target-venv
+
+[Install]
+WantedBy=multi-user.target
