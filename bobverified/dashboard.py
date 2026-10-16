@@ -5,6 +5,9 @@ import argparse
 import csv
 import http.server
 import json
+import os
+import signal
+import subprocess
 import sys
 import threading
 from datetime import datetime, timezone
@@ -351,6 +354,114 @@ def render_html(run: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
+# run_reverify_subprocess
+# ---------------------------------------------------------------------------
+
+def _collect_descendants(root_pid: int) -> list[int]:
+    """Return all descendant PIDs of root_pid by scanning /proc."""
+    children: dict[int, list[int]] = {}
+    try:
+        for entry in os.scandir("/proc"):
+            if not entry.name.isdigit():
+                continue
+            try:
+                stat = Path(f"/proc/{entry.name}/stat").read_text()
+                # format: pid (comm) state ppid ...
+                # find closing paren to handle comm with spaces/parens
+                rp = stat.rfind(")")
+                fields = stat[rp + 2:].split()
+                ppid = int(fields[1])  # 4th field overall = index 1 after split past ")"
+                pid = int(entry.name)
+                children.setdefault(ppid, []).append(pid)
+            except (FileNotFoundError, IndexError, ValueError):
+                continue
+    except FileNotFoundError:
+        return []
+
+    # BFS from root_pid
+    result = []
+    queue = list(children.get(root_pid, []))
+    while queue:
+        pid = queue.pop()
+        result.append(pid)
+        queue.extend(children.get(pid, []))
+    return result
+
+
+def run_reverify_subprocess(
+    run_dir: str,
+    timeout_s: float | None = None,
+    command: list[str] | None = None,
+) -> dict:
+    """Run re-verify as a subprocess, killing the whole process tree on timeout."""
+    if command is None:
+        # Extend PYTHONPATH so "-m bobverified.reverify" works from any cwd.
+        pkg_parent = str(Path(__file__).parent.parent)
+        env = dict(os.environ)
+        existing = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = f"{pkg_parent}:{existing}" if existing else pkg_parent
+        command = [sys.executable, "-m", "bobverified.reverify", "--run", run_dir]
+    else:
+        env = dict(os.environ)
+
+    proc = subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        start_new_session=True,
+        env=env,
+    )
+
+    try:
+        output, _ = proc.communicate(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        # Kill all descendants first (children before grandchildren doesn't matter; SIGKILL all)
+        descendants = _collect_descendants(proc.pid)
+        for dpid in descendants:
+            try:
+                os.kill(dpid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        try:
+            proc.kill()
+        except ProcessLookupError:
+            pass
+        try:
+            proc.communicate()
+        except Exception:
+            pass
+        now = _now_utc()
+        ts = int(timeout_s) if timeout_s == int(timeout_s) else timeout_s
+        return {
+            "utc": now,
+            "all_ok": False,
+            "results": [],
+            "log": f"{now} error: re-verify exceeded {ts} s and was stopped",
+        }
+
+    # Normal exit
+    code = proc.returncode
+    if code == 0:
+        reverify_dir = Path(run_dir) / "reverify"
+        if reverify_dir.is_dir():
+            files = sorted(reverify_dir.glob("*.json"))
+            if files:
+                return json.loads(files[-1].read_text())
+        # No record found – treat like crash
+        code = -1
+
+    now = _now_utc()
+    tail = output[-500:] if output else ""
+    return {
+        "utc": now,
+        "all_ok": False,
+        "results": [],
+        "log": f"{now} error: re-verify failed (exit {code}): {tail}",
+    }
+
+
+# ---------------------------------------------------------------------------
 # make_server
 # ---------------------------------------------------------------------------
 
@@ -362,6 +473,7 @@ def make_server(
     host: str = "127.0.0.1",
     port: int = 8080,
     reverify_fn=None,
+    reverify_timeout_s: float | None = None,
 ) -> http.server.ThreadingHTTPServer:
     """Create a ThreadingHTTPServer serving the dashboard for *run_dir*."""
 
@@ -402,8 +514,10 @@ def make_server(
 
             fn = reverify_fn
             if fn is None:
-                from bobverified import reverify as _rev
-                fn = _rev.reverify
+                _timeout = reverify_timeout_s
+
+                def fn(path, _t=_timeout):
+                    return run_reverify_subprocess(path, timeout_s=_t)
 
             reverify_dir = root / "reverify"
             reverify_dir.mkdir(exist_ok=True)
@@ -465,9 +579,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run", required=True, help="Path to the run directory")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
+    parser.add_argument("--reverify-timeout", type=float, default=None,
+                        help="Timeout in seconds for the re-verify subprocess")
     args = parser.parse_args(argv)
 
-    srv = make_server(args.run, args.host, args.port)
+    srv = make_server(args.run, args.host, args.port,
+                      reverify_timeout_s=args.reverify_timeout)
     host, port = srv.server_address
     print(f"serving {args.run} on http://{host}:{port}")
     try:
